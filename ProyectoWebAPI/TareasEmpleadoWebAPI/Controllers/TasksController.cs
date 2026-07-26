@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
 using TareasEmpleadoWebAPI.DTOs;
-using TareasEmpleadoWebAPI.Enums;
 using TareasEmpleadoWebAPI.Interfaces;
 
 namespace TareasEmpleadoWebAPI.Controllers;
@@ -14,16 +13,11 @@ public class TasksController(ITaskService taskService) : ControllerBase
     private readonly ITaskService _taskService = taskService;
 
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<TaskDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<TaskDto>>> GetAllAsync(
-            [FromQuery] TaskItemPriority? priority, [FromQuery] TaskItemStatus? status,
-            [FromQuery] int? userId, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate,
-            [FromQuery] int page = 1,[FromQuery] int pageSize = 20)
+    [ProducesResponseType(typeof(PagedResultDto<TaskDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResultDto<TaskDto>>> GetAllAsync([FromQuery] TaskQueryDto query)
     {
-        var tasks = await _taskService.GetAllAsync(
-            priority, status,
-            userId, startDate, endDate,
-            page, pageSize);
+        var tasks = await _taskService.GetAllAsync(query);
 
         return Ok(tasks);
     }

@@ -1,0 +1,213 @@
+<div class="card border-primary shadow-sm mb-4">
+  <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <h2 class="h5 mb-0">
+      @if (isEditMode) {
+        Editar tarea
+      }
+      @else {
+        Nueva tarea
+      }
+    </h2>
+
+    <button
+      type="button"
+      class="btn-close btn-close-white"
+      aria-label="Cerrar formulario"
+      [disabled]="isSaving()"
+      (click)="cancel()">
+    </button>
+  </div>
+
+  <div class="card-body">
+    @if (errorMessage()) {
+      <div class="alert alert-danger" role="alert">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="row g-3">
+        <div class="col-12">
+          <label for="taskTitle" class="form-label">
+            Título
+            <span class="text-danger">*</span>
+          </label>
+
+          <input
+            id="taskTitle"
+            type="text"
+            class="form-control"
+            formControlName="title"
+            maxlength="150"
+            [class.is-invalid]="isInvalid('title')" />
+
+          @if (form.controls.title.hasError('required') && isInvalid('title')) {
+            <div class="invalid-feedback">El título es obligatorio.</div>
+          }
+
+          @if (form.controls.title.hasError('maxlength') && isInvalid('title')) {
+            <div class="invalid-feedback">El título no puede superar 150 caracteres.</div>
+          }
+        </div>
+
+        <div class="col-12">
+          <label for="taskDescription" class="form-label"> Descripción </label>
+          <textarea
+            id="taskDescription"
+            class="form-control"
+            formControlName="description"
+            rows="3"
+            maxlength="500"
+            [class.is-invalid]="isInvalid('description')">
+          </textarea>
+
+          @if (form.controls.description.hasError('maxlength') && isInvalid('description')) {
+            <div class="invalid-feedback">La descripción no puede superar 500 caracteres.</div>
+          }
+        </div>
+
+        <div class="col-md-6">
+          <label for="taskPriority" class="form-label">
+            Prioridad
+            <span class="text-danger">*</span>
+          </label>
+
+          <select
+            id="taskPriority"
+            class="form-select"
+            formControlName="priority"
+            [class.is-invalid]="isInvalid('priority')">
+            @for (priority of priorities; track priority.value) {
+              <option [ngValue]="priority.value">
+                {{ priority.text }}
+              </option>
+            }
+          </select>
+
+          <div class="invalid-feedback">Selecciona una prioridad.</div>
+        </div>
+
+        <div class="col-md-6">
+          <label for="taskStatus" class="form-label">
+            Estado
+            <span class="text-danger">*</span>
+          </label>
+
+          <select
+            id="taskStatus"
+            class="form-select"
+            formControlName="status"
+            [class.is-invalid]="isInvalid('status')">
+            @for (status of statuses; track status.value) {
+              <option [ngValue]="status.value">
+                {{ status.text }}
+              </option>
+            }
+          </select>
+
+          <div class="invalid-feedback">Selecciona un estado.</div>
+        </div>
+
+        <div class="col-md-6">
+          <label for="taskDueDate" class="form-label">
+            Fecha de vencimiento
+            <span class="text-danger">*</span>
+          </label>
+
+          <input
+            id="taskDueDate"
+            type="date"
+            class="form-control"
+            formControlName="dueDate"
+            [class.is-invalid]="isInvalid('dueDate')" />
+
+          <div class="invalid-feedback">La fecha de vencimiento es obligatoria.</div>
+        </div>
+
+        <div class="col-md-6">
+          <label for="taskUserId" class="form-label">
+            Usuario
+            <span class="text-danger">*</span>
+          </label>
+
+          <select
+            id="taskUserId"
+            class="form-select"
+            formControlName="userId"
+            [class.is-invalid]="isInvalid('userId')">
+            <option [ngValue]="0">
+              Selecciona un usuario
+            </option>
+
+            @for (user of users(); track user.userId) {
+              <option [ngValue]="user.userId">
+                {{ user.fullName }}
+              </option>
+            }
+          </select>
+
+          @if (form.controls.userId.hasError('required') && isInvalid('userId')) {
+            <div class="invalid-feedback">
+              Selecciona un usuario.
+            </div>
+          }
+
+          @if (form.controls.userId.hasError('min') && isInvalid('userId')) {
+            <div class="invalid-feedback">
+              Selecciona un usuario valido.
+            </div>
+          }
+
+          @if (isLoadingUsers()) {
+            <div class="form-text">
+              <span class="spinner-border spinner-border-sm me-1" aria-hidden="true">
+              </span>
+              Consultando usuarios...
+            </div>
+          }
+
+          @if (usersErrorMessage()) {
+            <div class="text-danger small mt-1">
+              {{ usersErrorMessage() }}
+              <button
+                type="button"
+                class="btn btn-link btn-sm text-danger p-0 ms-1"
+                (click)="loadUsers()">
+                Reintentar
+              </button>
+            </div>
+          }
+
+          @if (!isLoadingUsers() && !usersErrorMessage() && users().length === 0) {
+            <div class="form-text text-warning">
+              No hay usuarios activos disponibles.
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 border-top pt-3 mt-4">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          [disabled]="isSaving()"
+          (click)="cancel()">
+          Cancelar
+        </button>
+
+        <button type="submit" class="btn btn-primary" [disabled]="isSaving()">
+          @if (isSaving()) {
+            <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+            Guardando...
+          }
+          @else if (isEditMode) {
+            Guardar cambios
+          }
+          @else {
+            Crear tarea
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

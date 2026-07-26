@@ -1,0 +1,8 @@
+.badge {
+  min-width: 3rem;
+}
+
+#reportPageSize {
+  width: auto;
+  min-width: 5rem;
+}

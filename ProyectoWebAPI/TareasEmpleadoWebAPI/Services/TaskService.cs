@@ -12,51 +12,65 @@ public class TaskService(ApplicationDbContext context) : ITaskService
 {
     private readonly ApplicationDbContext _context = context;
 
-    public async Task<IEnumerable<TaskDto>> GetAllAsync(
-            TaskItemPriority? priority, TaskItemStatus? status,
-            int? userId, DateTime? startDate, DateTime? endDate,
-            int page, int pageSize)
+    public async Task<PagedResultDto<TaskDto>> GetAllAsync(TaskQueryDto query)
     {
-        IQueryable<TaskItem> query = _context.Tasks
+        var tasksQuery = _context.Tasks
             .Include(t => t.User)
-            .AsNoTracking();
+            .AsNoTracking()
+            .AsQueryable();
 
-        if (priority.HasValue)
+        if (query.Priority.HasValue)
         {
-            query = query.Where(t => t.Priority == priority.Value);
+            tasksQuery = tasksQuery.Where(task => task.Priority == query.Priority.Value);
         }
 
-        if (status.HasValue)
+        if (query.Status.HasValue)
         {
-            query = query.Where(t => t.Status == status.Value);
+            tasksQuery = tasksQuery.Where(task => task.Status == query.Status.Value);
         }
 
-        if (userId.HasValue)
+        if (query.UserId.HasValue)
         {
-            query = query.Where(t => t.UserId == userId.Value);
+            tasksQuery = tasksQuery.Where(task => task.UserId == query.UserId.Value);
         }
 
-        if (startDate.HasValue)
+        if (query.StartDate.HasValue)
         {
-            query = query.Where(t => t.DueDate >= startDate.Value);
+            var startDate = query.StartDate.Value.ToDateTime(TimeOnly.MinValue);
+
+            tasksQuery = tasksQuery.Where(task => task.CreatedDate >= startDate);
         }
 
-        if (endDate.HasValue)
+        if (query.EndDate.HasValue)
         {
-            query = query.Where(t => t.DueDate <= endDate.Value);
+            var exclusiveEndDate = query.EndDate.Value
+                .AddDays(1)
+                .ToDateTime(TimeOnly.MinValue);
+
+            tasksQuery = tasksQuery.Where(task => task.CreatedDate < exclusiveEndDate);
         }
 
-        page = Math.Max(page, 1);
-        pageSize = Math.Clamp(pageSize, 1, 100);
+        var totalRecords = await tasksQuery.CountAsync();
 
-        var tasks = await query
-            .OrderBy(t => t.DueDate)
-            .ThenBy(t => t.Priority)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+        var totalPages = totalRecords == 0
+            ? 0
+            : (int)Math.Ceiling(totalRecords / (double)query.PageSize);
+
+        var items = await tasksQuery
+            .OrderByDescending(task => task.TaskId)
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Select(task => MapToDto(task))
             .ToListAsync();
 
-        return [.. tasks.Select(MapToDto)];
+        return new PagedResultDto<TaskDto>
+        {
+            Items = items,
+            Page = query.Page,
+            PageSize = query.PageSize,
+            TotalRecords = totalRecords,
+            TotalPages = totalPages
+        };
     }
 
     public async Task<TaskDto?> GetByIdAsync(int id)
@@ -73,6 +87,7 @@ public class TaskService(ApplicationDbContext context) : ITaskService
     {
         await ValidateUserAsync(dto.UserId);
         await ValidateDueDateAsync(dto.DueDate);
+        await ValidateActiveUserAsync(dto.UserId);
         await ValidateDuplicateTitleAsync(dto.Title, dto.UserId);
 
         var task = new TaskItem
@@ -108,6 +123,7 @@ public class TaskService(ApplicationDbContext context) : ITaskService
 
         await ValidateUserAsync(dto.UserId);
         await ValidateDueDateAsync(dto.DueDate);
+        await ValidateActiveUserAsync(dto.UserId);
         await ValidateDuplicateTitleAsync(dto.Title, dto.UserId, id);
         await ValidateStatusTransitionAsync(task.Status, dto.Status);
 
@@ -165,7 +181,7 @@ public class TaskService(ApplicationDbContext context) : ITaskService
         return true;
     }
 
-    private TaskDto MapToDto(TaskItem entity)
+    private static TaskDto MapToDto(TaskItem entity)
     {
         return new TaskDto
         {
@@ -252,4 +268,16 @@ public class TaskService(ApplicationDbContext context) : ITaskService
         return Task.CompletedTask;
     }
 
+    private async Task ValidateActiveUserAsync(int userId)
+    {
+        var userExists = await _context.Users
+            .AsNoTracking()
+            .AnyAsync(user => user.UserId == userId && user.IsActive);
+
+        if (!userExists)
+        {
+            throw new InvalidOperationException(
+                "El usuario seleccionado no existe o se encuentra inactivo.");
+        }
+    }
 }

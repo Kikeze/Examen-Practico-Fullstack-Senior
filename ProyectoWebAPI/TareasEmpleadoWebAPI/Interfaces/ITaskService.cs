@@ -1,18 +1,10 @@
 ﻿using TareasEmpleadoWebAPI.DTOs;
-using TareasEmpleadoWebAPI.Enums;
 
 namespace TareasEmpleadoWebAPI.Interfaces;
 
 public interface ITaskService
 {
-    Task<IEnumerable<TaskDto>> GetAllAsync(
-        TaskItemPriority? priority,
-        TaskItemStatus? status,
-        int? userId,
-        DateTime? startDate,
-        DateTime? endDate,
-        int page,
-        int pageSize);
+    Task<PagedResultDto<TaskDto>> GetAllAsync(TaskQueryDto query);
 
     Task<TaskDto?> GetByIdAsync(int id);
 

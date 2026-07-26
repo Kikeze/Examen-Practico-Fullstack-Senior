@@ -13,12 +13,12 @@ public class ReportsController(IReportService reportService) : ControllerBase
     private readonly IReportService _reportService = reportService;
 
     [HttpGet("pending-tasks")]
-    [ProducesResponseType(typeof(IEnumerable<PendingTaskReportDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<PendingTaskReportDto>>>GetPendingTasksAsync(
-            [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    [ProducesResponseType(typeof(PagedResultDto<PendingTaskReportDto>),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResultDto<PendingTaskReportDto>>> GetPendingTasks([FromQuery] PendingTaskReportQueryDto query)
     {
-        var report = await _reportService.GetPendingTasksAsync(page, pageSize);
+        var result = await _reportService.GetPendingTasksAsync(query);
 
-        return Ok(report);
+        return Ok(result);
     }
 }
