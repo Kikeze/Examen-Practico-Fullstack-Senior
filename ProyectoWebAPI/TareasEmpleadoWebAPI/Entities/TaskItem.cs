@@ -32,6 +32,10 @@ public class TaskItem
 
     public int UserId { get; set; }
 
+    public bool IsDeleted { get; set; }
+
+    public DateTime? DeletedDate { get; set; }
+
     [ForeignKey(nameof(UserId))]
     public User? User { get; set; }
 }

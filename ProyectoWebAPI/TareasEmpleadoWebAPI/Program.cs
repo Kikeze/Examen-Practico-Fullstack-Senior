@@ -2,6 +2,9 @@
 using Microsoft.EntityFrameworkCore;
 
 using TareasEmpleadoWebAPI.Data;
+using TareasEmpleadoWebAPI.Interfaces;
+using TareasEmpleadoWebAPI.Middleware;
+using TareasEmpleadoWebAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +31,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddScoped<ITaskService, TaskService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Opciones de configuracion de HTTP
 if (app.Environment.IsDevelopment())

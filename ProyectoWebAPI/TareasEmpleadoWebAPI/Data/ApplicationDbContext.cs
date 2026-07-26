@@ -28,14 +28,36 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         modelBuilder.Entity<TaskItem>(entity =>
         {
-            entity.ToTable("Tasks");
-            entity.HasKey(e => e.TaskId);
+            entity.ToTable("Tasks", tableBuilder =>
+            {
+                tableBuilder.UseSqlOutputClause(false);
+            });
 
-            entity.Property(e => e.Priority)
-                  .HasConversion<int>();
+            entity.HasKey(task => task.TaskId);
 
-            entity.Property(e => e.Status)
-                  .HasConversion<int>();
+            entity.Property(task => task.Title)
+                .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(task => task.Description)
+                .HasMaxLength(500);
+
+            entity.Property(task => task.IsDeleted)
+                .HasDefaultValue(false)
+                .IsRequired();
+
+            entity.Property(task => task.DeletedDate);
+
+            entity.HasIndex(task => new
+                {
+                    task.UserId,
+                    task.Title
+                })
+                .IsUnique()
+                .HasFilter("[IsDeleted] = 0")
+                .HasDatabaseName("UX_Tasks_User_Title");
+
+            entity.HasQueryFilter(task => !task.IsDeleted);
         });
 
         modelBuilder.Entity<TaskAudit>(entity =>
