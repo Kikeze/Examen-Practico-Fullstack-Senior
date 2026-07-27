@@ -65,7 +65,8 @@ GO
 
 -- Indice unique para evitar asignar duplicidad en las tareas por usuario
 CREATE UNIQUE INDEX UX_Tasks_User_Title
-ON dbo.Tasks(UserId, Title);
+ON dbo.Tasks(UserId, Title)
+WHERE IsDeleted = 0;
 GO
 
 -- Indices para optimizacion de busquedas
